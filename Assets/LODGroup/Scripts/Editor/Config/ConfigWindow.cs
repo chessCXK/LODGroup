@@ -16,7 +16,7 @@ namespace Chess.LODGroupIJob.Config
         {
             var config = SystemConfig.Instance.Config;
             config.asynLoadNum = EditorGUILayout.IntField("同时异步加载数量", config.asynLoadNum);
-            config.cullInterval = EditorGUILayout.FloatField("间隔时常计算屏占比", config.cullInterval);
+            config.cullInterval = EditorGUILayout.FloatField("间隔时下计算屏占比", config.cullInterval);
             EditorGUI.BeginChangeCheck();
             config.editorStream = EditorGUILayout.Toggle("编辑器下启动流式加载", config.editorStream);
             if(EditorGUI.EndChangeCheck())
