@@ -1,5 +1,5 @@
 <h2>LODGroup</h2> 
-**技术原理：** https://blog.csdn.net/qq_33700123/article/details/114933721
+技术原理： https://blog.csdn.net/qq_33700123/article/details/114933721
 
  <h3>使用教程</h3> <br />
 <img src="/DocumentationImages/1.png" width="100%">    
