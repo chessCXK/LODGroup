@@ -11,7 +11,7 @@
 	加载优先权重：设置加载优先权重<br />
 
 <br />
- <h3>LODGroupConfig</h3> <br />
+ <h3>LODGroupConfig</h3>
 	Chess/LODGroupConfig打开。<br />
   <img src="/DocumentationImages/2.png" width="100%">   <br /> 
 	同时异步加载数量：设置加载队列同时可以有几个在加载<br />
