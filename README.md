@@ -21,5 +21,5 @@
 	
  <h3>流式加载接口</h3> <br />
   <img src="/DocumentationImages/3.png" width="100%">    <br />
-	流式加载接口需要继承“IloadAsset”抽象类，继承后的子类实例化了流式加载才生效。可以参考当前已经的脚本“ResourcesLoadAsset”。
+	流式加载接口需要继承“IloadAsset”抽象类，继承后的子类实例化了流式加载才生效。可以参考当前已有的脚本“ResourcesLoadAsset”。
 
