@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using Chess.LODGroupIJob.Utils;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -12,109 +13,103 @@ namespace Chess.LODGroupIJob
         //基于当前物体的坐标位置
         public Vector3 localReferencePoint { get => m_Bounds.center; set => m_Bounds.center = value; }
         //LOD数量
-        public int lodCount { get => m_LODList == null ? 0 : m_LODList.Count; }
-        //LODGroup包围盒大小，包围盒永远都是正方体
-        public float size { get => Mathf.Max(m_Bounds.size); }
+        public int lodCount { get => m_LODs == null ? 0 : m_LODs.Length; }
 
-        public Bounds Bounds { get => m_Bounds; set => m_Bounds = value; }
-
-        //当前屏幕占位置[0-1]
-        private float m_ScreenRelative;
-        //当前lod
-        private int m_CurrentLOD = 0;
-
-        //有lod加载完后调用，参数是加载完的那个LOD
-        private UnityAction<LOD> m_LoadedAction;
-
+        //有流式的的lod
+        private bool m_CoverStreamLOD;
         private void Awake()
         {
-            /*
-            if (m_LODList == null)
+            if (m_LODs == null)
                 return;
-            foreach(var lod in m_LODList)
+            foreach(var lod in m_LODs)
             {
-                lod.CurrentState = State.None;
-            }*/
+                if(lod.Streaming)
+                {
+                    m_CoverStreamLOD = true;
+                    lod.CurrentState = State.None;
+                }
+                else
+                {
+                    lod.SetState(false, this, 0);
+                }
+                
+            }
         }
         //设置LOD组
-        public void SetLODs(LOD[] lods)
+        public override void SetLODs(LOD[] lods)
         {
+            base.SetLODs(lods);
             if (lods != null && lods.Length > 0)
             {
-                if (m_LODList == null)
-                    m_LODList = new List<LOD>();
-                m_LODList.Clear();
-                m_LODList.AddRange(lods);
+                m_LODs = lods;
             }
-            
         }
         //获得LOD组
-        public LOD[] GetLODs()
-        {
-            return m_LODList.ToArray();
+        public override LOD[] GetLODs()
+        {   
+            return m_LODs;
         }
      
         //状态改变
-        public void UpdataState(Vector2 relativeAndDistance, CameraType type)
+        public override void UpdataState(JobSystem.JobResult calResult, CameraType type)
         {
-            m_ScreenRelative = relativeAndDistance.x;
-            float distance = relativeAndDistance.y;
-            bool select = false;
-            int i = -1;
-            foreach (var lod in m_LODList)
-            {
-                i++;
-                if (m_ScreenRelative > lod.ScreenRelativeTransitionHeight)
-                {
-                    m_CurrentLOD = i;
-                    lod.SetState(true, this, distance, type);
-                    select = true;
-                    break;
-                }
-            }
-            if (!select)
-            {
-                m_CurrentLOD = -1;
-                OnDisableAllLOD(type);
-            }
+            if (calResult.lodLevel == m_CurrentLOD && calResult.lodLevel == m_LoadingLOD)
+                return;
 #if UNITY_EDITOR
-            if (!Application.isPlaying && UnityEditor.Selection.gameObjects.Length != 0)
+            //运行模式如果有流式lod那么scence相机不生效
+            if(Application.isPlaying && m_CoverStreamLOD && type != CameraType.Game)
             {
-                //被选中的物体不隐藏
-                foreach (var obj in UnityEditor.Selection.gameObjects)
-                {
-                    foreach (var lod in m_LODList)
-                    {
-                        if(lod.Renderers != null)
-                        foreach (var rd in lod.Renderers)
-                        {
-                            if (rd != null && obj == rd.gameObject)
-                            {
-                                rd.enabled = true;
-                            }
-                        }
-                    }
-                    
-                }
+                return;
+            }
+            //编辑器模式下启动了流式加载那么也生效
+            if (!Application.isPlaying && (type != CameraType.Game || !SystemConfig.Instance.Config.editorStream))
+            {
+                if(calResult.lodLevel != -1)
+                    if(m_LODs[calResult.lodLevel].Streaming)
+                        return;
             }
 #endif
-        }
-        public void OnDisableAllLOD(CameraType type = CameraType.Game)
-        {
-            int i = -1;
-            foreach (var lod in m_LODList)
-            {
-                i++;
-                if (i == m_CurrentLOD)
-                    continue;
+            /*if (type != CameraType.Game)
+                return;*/
 
-                lod.SetState(false, this, 0, type);
+            if (calResult.lodLevel == -1)
+            {
+                if(m_LoadingLOD != -1)
+                {
+                    m_LODs[m_LoadingLOD].SetState(false, this, calResult.distance);
+                    m_LoadingLOD = -1;
+                }
+                if (m_CurrentLOD != -1)
+                {
+                    m_LODs[m_CurrentLOD].SetState(false, this, calResult.distance);
+                    m_CurrentLOD = -1;
+                }
+                return;
             }
+                
+            var lod = m_LODs[calResult.lodLevel];
+            bool result = false;
+            result = lod.SetState(true, this, calResult.distance, calResult.lodLevel);
+
+            if(m_LoadingLOD != -1 && m_LoadingLOD != calResult.lodLevel && m_LoadingLOD != m_CurrentLOD)
+            {
+                m_LODs[m_LoadingLOD].SetState(false, this, calResult.distance);
+            }
+            m_LoadingLOD = calResult.lodLevel;
         }
-        public void RecalculateBounds()
+        public void OnDisableCurrentLOD(int willLOD = -1)
         {
+            if (m_CurrentLOD != -1 && m_CurrentLOD != willLOD)
+            {
+                m_LODs[m_CurrentLOD].SetState(false, this, 0);
+            }
+            m_CurrentLOD = willLOD;
+        }
+        public override void RecalculateBounds()
+        {
+            base.RecalculateBounds();
             List<Renderer> all = new List<Renderer>();
-            foreach (var lod in m_LODList)
+            foreach (var lod in m_LODs)
             {
                 if (lod.Renderers != null)
                 {
@@ -141,25 +136,22 @@ namespace Chess.LODGroupIJob
             Bounds = new Bounds(bounds);
         }
 #if UNITY_EDITOR
-        void OnDrawGizmos()
+        void OnDrawGizmosSelected()
         {
-            if (Selection.activeObject != this.gameObject)
-                return;
-
             Camera cam = Camera.current;
             if (cam.cameraType != CameraType.SceneView)
                 return;
             var tempColor = GUI.backgroundColor;
             string show;
-            if (m_CurrentLOD == -1)
+            if (m_LoadingLOD == -1)
             {
                 show = Utils.LODUtils.kLODCulled;
                 Gizmos.color = Utils.LODUtils.kDefaultLODColor;
             }
             else
             {
-                show = string.Format("LOD{0}", m_CurrentLOD);
-                Gizmos.color = Utils.LODUtils.kLODColors[m_CurrentLOD];
+                show = string.Format("LOD{0}", m_LoadingLOD);
+                Gizmos.color = Utils.LODUtils.kLODColors[m_LoadingLOD];
             }
 
             var pos = transform.position + localReferencePoint;

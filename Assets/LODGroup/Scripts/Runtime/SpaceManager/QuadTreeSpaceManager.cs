@@ -5,17 +5,23 @@ namespace Chess.LODGroupIJob.SpaceManager
     public static class QuadTreeSpaceManager
     {
         //bounds的值已经是世界坐标的了，camPosition也是世界坐标
-        public static Vector2 SettingCameraJob
-                        (bool orthographic,
-                        float orthographicSize, 
-                        float fieldOfView,
-                        float lodBias,
-                        Bounds bounds,
-                        Vector3 camPosition
+        public static JobSystem.JobResult SettingCameraJob
+                        (Bounds bounds,
+                        Vector3 camPosition,
+                        float preRelative
                         )
         {
-            Vector2 result;
-            float preRelative;
+            JobSystem.JobResult result = new JobSystem.JobResult();
+            result.distance = GetDistance(bounds.center, camPosition);
+            result.relative = bounds.size * preRelative / result.distance;
+            return result;
+        }
+        public static void SettingCamera(bool orthographic,
+                        float orthographicSize,
+                        float fieldOfView,
+                        float lodBias,
+                        out float preRelative)
+        {
             if (orthographic)
             {
                 preRelative = 0.5f / orthographicSize;
@@ -26,22 +32,10 @@ namespace Chess.LODGroupIJob.SpaceManager
                 preRelative = 0.5f / halfAngle;
             }
             preRelative = preRelative * lodBias;
-            result.y = GetDistance(bounds.center, camPosition);
-            result.x = bounds.size * preRelative / result.y;
-            return result;
         }
         public static void SettingCamera(Transform lodTransform, Camera cam, out float preRelative)
         {
-            if (cam.orthographic)
-            {
-                preRelative = 0.5f / cam.orthographicSize;
-            }
-            else
-            {
-                float halfAngle = Mathf.Tan(Mathf.Deg2Rad * cam.fieldOfView * 0.5F);
-                preRelative = 0.5f / halfAngle;
-            }
-            preRelative = preRelative * QualitySettings.lodBias;
+            SettingCamera(cam.orthographic, cam.orthographicSize, cam.fieldOfView, QualitySettings.lodBias, out preRelative);
         }
 
         public static float GetRelativeHeight(Bounds bounds, Vector3 lodGroupPos, float preRelative, Vector3 camPosition)

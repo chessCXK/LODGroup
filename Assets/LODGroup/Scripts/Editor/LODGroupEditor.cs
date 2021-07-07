@@ -1,3 +1,4 @@
+using Chess.LODGroupIJob.JobSystem;
 using Chess.LODGroupIJob.Slider;
 using Chess.LODGroupIJob.Utils;
 using System.Collections.Generic;
@@ -143,6 +144,11 @@ namespace Chess.LODGroupIJob
             {
                 m_LODGroup.RecalculateBounds();
             }
+            //框框滑动条有所变动，需要刷新job数据
+            if(m_LODSlider.RefreshDrag)
+            {
+                LODGroupManager.Instance.Dirty = true;
+            }
             LOD[] lods = m_LODGroup.GetLODs();
             if (lods[index].Streaming)
             {
@@ -185,6 +191,14 @@ namespace Chess.LODGroupIJob
                 if (change)
                 {
                     lods[index].Renderers = renderers.ToArray();
+                    List<Collider> l = new List<Collider>();
+                    foreach(var r in renderers)
+                    {
+                       var c = r.GetComponent<Collider>();
+                        if (c)
+                            l.Add(c);
+                    }
+                    lods[index].Colliers = l.ToArray();
                     m_LODGroup.RecalculateBounds();
                 }
 
@@ -259,7 +273,9 @@ namespace Chess.LODGroupIJob
 
             GameObject.DestroyImmediate(lodObj);
             lod.Renderers = null;
+            lod.Colliers = null;
             lod.Address = savePath;
+            lod.CurrentState = State.UnLoaded;
             lod.Streaming = true;
         }
         void ImportLODAsset(int index, LOD lod)

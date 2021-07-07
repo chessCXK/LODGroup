@@ -8,6 +8,7 @@ namespace Chess.LODGroupIJob
     public enum State
     {
         None,
+        UnLoading,
         UnLoaded,
         Loading,
         Loaded,
@@ -23,7 +24,9 @@ namespace Chess.LODGroupIJob
         private float screenRelativeTransitionHeight;
         //当前管理的Renderer
         [SerializeField]
-        public Renderer[] m_Renderers;
+        private Renderer[] m_Renderers;
+        [SerializeField]
+        private Collider[] m_Colliers;
         //当前状态
         [SerializeField]
         private State m_CurrentState;
@@ -48,6 +51,7 @@ namespace Chess.LODGroupIJob
             m_CurrentState = State.None;
         }
         public Renderer[] Renderers { get => m_Renderers; set => m_Renderers = value; }
+        public Collider[] Colliers { get => m_Colliers; set => m_Colliers = value; }
         public State CurrentState { get => m_CurrentState; set => m_CurrentState = value; }
         public State LastState { get => m_LastState; set => m_LastState = value; }
         public bool Streaming { get => m_Streaming; set => m_Streaming = value; }
@@ -55,24 +59,18 @@ namespace Chess.LODGroupIJob
         public string Address { get => address; set => address = value; }
         public int Priority { get => priority; set => priority = value; }
         public Handle Handle { get => handle; set => handle = value; }
-        
+
         //返回true表示刚加载完成，否则返回false
-        public void SetState(bool active, LODGroup lodGroup, float distance, CameraType type)
+        public bool SetState(bool active, LODGroup lodGroup, float distance, int willLOD = -1)
         {
             if(m_Streaming)
             {
-#if UNITY_EDITOR
-                //编辑器模式下启动了流式加载那么也生效
-                if (!Application.isPlaying && (type != CameraType.Game || !SystemConfig.Instance.Config.editorStream))
-                {
-                    return;
-                }
-#endif
-                StreamingLOD.SetState(active, this, lodGroup, distance, type);
+                return StreamingLOD.SetState(active, this, lodGroup, distance, willLOD);
             }
             else
             {
-                NormalLOD.SetState(active, this, lodGroup);
+                NormalLOD.SetState(active, this, lodGroup, willLOD);
+                return true;
             } 
         }
     }

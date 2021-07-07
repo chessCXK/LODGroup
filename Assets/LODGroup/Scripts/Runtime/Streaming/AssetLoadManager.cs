@@ -34,10 +34,12 @@ namespace Chess.LODGroupIJob.Streaming
         public Handle LoadAsset(LOD controller, string address, int priority, float distance)
         {
             Handle handle = new Handle(controller, address, priority, distance);
-            InsertHandle(handle);
             return handle;
         }
-
+        public void Start(Handle handle)
+        {
+            InsertHandle(handle);
+        }
         //п╤ть
         public void UnloadAsset(Handle handle)
         {

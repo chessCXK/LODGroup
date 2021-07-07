@@ -53,6 +53,9 @@ namespace Chess.LODGroupIJob.Slider
 
         //是否需要刷新包围盒
         private bool m_RefreshBounds;
+
+        //是否拖动了框框
+        private bool m_RefreshDrag;
         //被调用将m_RefreshBounds变False;
         public bool RefreshBounds
         {
@@ -63,7 +66,17 @@ namespace Chess.LODGroupIJob.Slider
                 return result;
             }
         }
-
+        
+        //被调用将m_RefreshBounds变False;
+        public bool RefreshDrag
+        {
+            get
+            {
+                bool result = m_RefreshDrag;
+                m_RefreshDrag = false;
+                return result;
+            }
+        }
         public SlideCursor SlideCursor { get => m_SlideCursor; set => m_SlideCursor = value; }
         public LODGroupEditor LODGroupEditor { get => m_LODGroupEditor; set => m_LODGroupEditor = value; }
 
@@ -161,7 +174,8 @@ namespace Chess.LODGroupIJob.Slider
                     {
                         evt.Use();
                         m_SelectedIndex = -1;
-                        GUIUtility.hotControl = 0;
+                        m_RefreshDrag = true;
+                        GUIUtility.hotControl = 0;    
                     }       
                     break;
                 }
@@ -317,22 +331,29 @@ namespace Chess.LODGroupIJob.Slider
                 {
                     obj = DragAndDrop.objectReferences[0] as GameObject;
                     //将新的rederer加入到lod
-                   
+                    var renderers = new List<Renderer>();
+                    if (lod.Renderers != null)
+                        renderers.AddRange(lod.Renderers);
                     foreach (var renderer in obj.GetComponentsInChildren<Renderer>())
                     {
-                        var renderers = new List<Renderer>();
-                        if (lod.Renderers != null)
-                            renderers.AddRange(lod.Renderers);
                         if (!renderers.Contains(renderer))
                         {
                             renderer.enabled = false;
                             renderers.Add(renderer);
                         }
-                        lod.Renderers = renderers.ToArray();
                         m_RefreshBounds = true;
                         //EditorUtility.SetDirty(lod as Object);
                         SceneView.lastActiveSceneView.Repaint();
                     }
+                    lod.Renderers = renderers.ToArray();
+                    List<Collider> l = new List<Collider>();
+                    foreach (var r in renderers)
+                    {
+                        var c = r.GetComponent<Collider>();
+                        if (c)
+                            l.Add(c);
+                    }
+                    lod.Colliers = l.ToArray();
                 }
                 
             }

@@ -5,15 +5,16 @@ namespace Chess.LODGroupIJob
     public static class StreamingLOD
     {
         //正常模式只有显示和隐藏
-        public static void SetState(bool active, LOD lod, LODGroup lodGroup, float distance, CameraType type)
+        public static bool SetState(bool active, LOD lod, LODGroup lodGroup, float distance, int willLOD = -1)
         {
+            bool onceLoaded = false;
             switch (lod.CurrentState)
             {
                 case State.None:
                 case State.UnLoaded:
                     if (active == true)
                     {
-                        LoadAsset(lod, lodGroup, distance, type);
+                        LoadAsset(lod, lodGroup, distance, willLOD);
                     }
                     break;
                 case State.Loading:
@@ -26,16 +27,18 @@ namespace Chess.LODGroupIJob
                     if(active == false)
                     {
                         UnLoaded(lod);
+    
                     }
                     else if(lod.LastState == State.Loading)
                     {
-                        return;
+                        onceLoaded = true;
                     }
                     break;
             }
             lod.LastState = lod.CurrentState;
+            return onceLoaded;
         }
-        private static void LoadAsset(LOD lod, LODGroup lodGroup, float distance, CameraType type)
+        private static void LoadAsset(LOD lod, LODGroup lodGroup, float distance, int willLOD = -1)
         {
             var handle = AssetLoadManager.Instance.LoadAsset(lod, lod.Address, lod.Priority, distance);
             lod.Handle = handle;
@@ -58,9 +61,10 @@ namespace Chess.LODGroupIJob
                 h.Result = gameObject;
                 gameObject.transform.parent = lodGroup.transform;
                 h.Controller.CurrentState = State.Loaded;
-                lodGroup.OnDisableAllLOD(type);
+                lodGroup.OnDisableCurrentLOD(willLOD);
 
             };
+            AssetLoadManager.Instance.Start(handle);
             lod.CurrentState = State.Loading;
         }
 

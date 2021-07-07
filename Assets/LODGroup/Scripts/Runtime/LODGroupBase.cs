@@ -27,7 +27,12 @@ namespace Chess.LODGroupIJob
         [SerializeField, HideInInspector]
         protected Bounds m_Bounds;
         [SerializeField, HideInInspector]
-        protected List<LOD> m_LODList;
+        protected LOD[] m_LODs;
+        protected int m_CurrentLOD = -1;
+        protected int m_LoadingLOD = -1;
+        //LODGroup包围盒大小，包围盒永远都是正方体
+        public float size { get => Mathf.Max(m_Bounds.size); }
+        public Bounds Bounds { get => m_Bounds; set => m_Bounds = value; }
 #if UNITY_EDITOR
         GUIStyle e_Style;
         protected GUIStyle Style
@@ -44,6 +49,19 @@ namespace Chess.LODGroupIJob
             }
         }
 #endif
+        public virtual void UpdataState(JobResult calResult, CameraType type) { }
+        public virtual void SetLODs(LOD[] lods)
+        {
+            LODGroupManager.Instance.Dirty = true;
+        }
+        public virtual LOD[] GetLODs()
+        {
+            return null;
+        }
+        public virtual void RecalculateBounds() 
+        {
+            LODGroupManager.Instance.Dirty = true;
+        }
         public virtual void OnEnable()
         {
             LODGroupManager.Instance.SetLODGroup(this);
